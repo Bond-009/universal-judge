@@ -66,7 +66,15 @@ def convert_statement(statement: Statement) -> str:
 indent = " " * 4
 
 def convert_execution_unit(pu: PreparedExecutionUnit) -> str:
-    result = f"""include {{ solution_main; echo }} from './{pu.submission_name}'
+    includes = []
+    if any(isinstance(tc.input, MainInput) for ctx in pu.contexts for tc in ctx.testcases):
+        includes.append("solution_main")
+
+    for ctx in pu.contexts:
+        for tc in ctx.testcases:
+            if isinstance(tc.input, PreparedTestcaseStatement):
+                includes.append(tc.input.unwrapped_input_statement().name)
+    result = f"""include {{ {"; ".join(includes)} }} from './{pu.submission_name}'
 
 value_file = file("${{projectDir}}/{pu.value_file}")
 exception_file = file("${{projectDir}}/{pu.exception_file}")
@@ -103,15 +111,13 @@ process send_value {{
         # Generate code for each testcase
         tc: PreparedTestcase
         for j, tc in enumerate(ctx.testcases):
+            result += indent + "write_separator()\n"
             # Prepare command arguments if needed.
             if tc.testcase.is_main_testcase():
-                result += indent + "write_separator()\n"
                 assert isinstance(tc.input, MainInput)
-                result += f"{indent}solution_main("
-                result += [shlex.quote(x) for x in tc.input.arguments].join(", ") + ") | view(newLine: false)\n"
+                result += f"{indent}solution_main()\n"
             else:
                 assert isinstance(tc.input, PreparedTestcaseStatement)
-                result += indent + "write_separator()\n"
                 result += indent + convert_statement(tc.input.input_statement()) + "\n"
             result += "\n"
 
