@@ -68,48 +68,29 @@ indent = " " * 4
 def convert_execution_unit(pu: PreparedExecutionUnit) -> str:
     result = f"""include {{ solution_main; echo }} from './{pu.submission_name}'
 
-process write_context_separator {{
-    output:
-        stdout
+value_file = file("${{projectDir}}/{pu.value_file}")
+exception_file = file("${{projectDir}}/{pu.exception_file}")
 
-    \"""
-    echo -n "--{pu.context_separator_secret}-- SEP" >>${{projectDir}}/{pu.value_file}
-    echo -n "--{pu.context_separator_secret}-- SEP" >>${{projectDir}}/{pu.exception_file}
-    echo -n "--{pu.context_separator_secret}-- SEP"
-    echo -n "--{pu.context_separator_secret}-- SEP" >&2
-    \"""
+def write_context_separator() {{
+    value_file     << "--{pu.context_separator_secret}-- SEP"
+    exception_file << "--{pu.context_separator_secret}-- SEP"
+    System.out     << "--{pu.context_separator_secret}-- SEP"
+    System.err     << "--{pu.context_separator_secret}-- SEP"
 }}
 
-process write_separator {{
-    output:
-        stdout
-
-    \"""
-    echo -n "--{pu.testcase_separator_secret}-- SEP" >>${{projectDir}}/{pu.value_file}
-    echo -n "--{pu.testcase_separator_secret}-- SEP" >>${{projectDir}}/{pu.exception_file}
-    echo -n "--{pu.testcase_separator_secret}-- SEP"
-    echo -n "--{pu.testcase_separator_secret}-- SEP" >&2
-    \"""
+def write_separator() {{
+    value_file     << "--{pu.testcase_separator_secret}-- SEP"
+    exception_file << "--{pu.testcase_separator_secret}-- SEP"
+    System.out     << "--{pu.testcase_separator_secret}-- SEP"
+    System.err     << "--{pu.testcase_separator_secret}-- SEP"
 }}
 
 process send_value {{
     input:
     val x
 
-    script:
-    json = groovy.json.JsonOutput.toJson([type: 'text', data: "${{x}}".replace('\\n', '')])
-
-    \"""
-    echo -n '${{json}}' >>${{projectDir}}/{pu.value_file}
-    \"""
-}}
-
-process setup {{
-    cache false
-
-    \"""
-    touch ${{projectDir}}/{pu.value_file} ${{projectDir}}/{pu.exception_file}
-    \"""
+    exec:
+    value_file << groovy.json.JsonOutput.toJson([type: 'text', data: "${{x}}"])
 }}
 
 """
@@ -124,14 +105,13 @@ process setup {{
         for j, tc in enumerate(ctx.testcases):
             # Prepare command arguments if needed.
             if tc.testcase.is_main_testcase():
-                result += indent + "write_separator | view\n"
+                result += indent + "write_separator()\n"
                 assert isinstance(tc.input, MainInput)
                 result += f"{indent}solution_main("
-                result += [shlex.quote(x) for x in tc.input.arguments].join(", ") + ") | view\n"
+                result += [shlex.quote(x) for x in tc.input.arguments].join(", ") + ") | view(newLine: false)\n"
             else:
-                if j != 0:
-                    result += indent + "write_separator | view\n"
                 assert isinstance(tc.input, PreparedTestcaseStatement)
+                result += indent + "write_separator()\n"
                 result += indent + convert_statement(tc.input.input_statement()) + "\n"
             result += "\n"
 
@@ -140,11 +120,10 @@ process setup {{
 
     result += f"""
 workflow {{
-    setup
 """
 
     for i, ctx in enumerate(pu.contexts):
-        result += f"{indent}write_context_separator | view\n"
+        result += f"{indent}write_context_separator()\n"
         result += f"{indent}context_{i}()\n"
 
     result += "}\n"
