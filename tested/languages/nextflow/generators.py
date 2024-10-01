@@ -37,12 +37,6 @@ def convert_arguments(arguments: list[Expression]) -> str:
     return ", ".join(convert_statement(arg) for arg in arguments)
 
 def convert_function_call(function: FunctionCall) -> str:
-    # HACK
-    if (len(function.arguments) == 1
-            and isinstance(function.arguments[0], FunctionCall)
-            and function.arguments[0].type == FunctionType.FUNCTION):
-        return convert_function_call(function.arguments[0]) + " | " + function.name
-
     result = function.name
     if function.type != FunctionType.PROPERTY:
             result += f"({convert_arguments(cast(list[Expression], function.arguments))})"
