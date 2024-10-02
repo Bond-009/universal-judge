@@ -29,7 +29,9 @@ class Nextflow(Language):
         return ["nextflow", "-quiet", "run", file, *named_arguments]
 
     def naming_conventions(self) -> dict[Conventionable, NamingConventions]:
-        return {"global_identifier": "camel_case"}
+        return {
+            "function": "camel_case",
+        }
 
     def file_extension(self) -> str:
         return "nf"
@@ -44,7 +46,6 @@ class Nextflow(Language):
         return {
             Construct.ASSIGNMENTS,
             Construct.FUNCTION_CALLS,
-            Construct.GLOBAL_VARIABLES,
             Construct.NAMED_ARGUMENTS
         }
 

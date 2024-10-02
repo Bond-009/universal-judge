@@ -73,21 +73,21 @@ def convert_execution_unit(pu: PreparedExecutionUnit) -> str:
 value_file = file("${{projectDir}}/{pu.value_file}")
 exception_file = file("${{projectDir}}/{pu.exception_file}")
 
-def write_context_separator() {{
+def writeContextSeparator() {{
     value_file     << "--{pu.context_separator_secret}-- SEP"
     exception_file << "--{pu.context_separator_secret}-- SEP"
     System.out     << "--{pu.context_separator_secret}-- SEP"
     System.err     << "--{pu.context_separator_secret}-- SEP"
 }}
 
-def write_separator() {{
+def writeSeparator() {{
     value_file     << "--{pu.testcase_separator_secret}-- SEP"
     exception_file << "--{pu.testcase_separator_secret}-- SEP"
     System.out     << "--{pu.testcase_separator_secret}-- SEP"
     System.err     << "--{pu.testcase_separator_secret}-- SEP"
 }}
 
-process send_value {{
+process sendValue {{
     input:
     val x
 
@@ -99,13 +99,13 @@ process send_value {{
     # Generate code for each context.
     ctx: PreparedContext
     for i, ctx in enumerate(pu.contexts):
-        result += f"workflow context_{i} {{\n"
+        result += f"workflow context{i} {{\n"
         result += indent + ctx.before + "\n"
 
         # Generate code for each testcase
         tc: PreparedTestcase
         for j, tc in enumerate(ctx.testcases):
-            result += indent + "write_separator()\n"
+            result += indent + "writeSeparator()\n"
             # Prepare command arguments if needed.
             if tc.testcase.is_main_testcase():
                 assert isinstance(tc.input, MainInput)
@@ -123,8 +123,8 @@ workflow {{
 """
 
     for i, ctx in enumerate(pu.contexts):
-        result += f"{indent}write_context_separator()\n"
-        result += f"{indent}context_{i}()\n"
+        result += f"{indent}writeContextSeparator()\n"
+        result += f"{indent}context{i}()\n"
 
     result += "}\n"
 
