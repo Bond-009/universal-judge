@@ -1,8 +1,9 @@
-process echo_function() {
+process echoFunction() {
     input:
-    path x1
-    path x2
-    output
-    path x2
-    echo "$x1" > "$2"
+    val x1
+    val x2
+
+    """
+    echo "${x2}" > "${projectDir}/${x1}"
+    """
 }
