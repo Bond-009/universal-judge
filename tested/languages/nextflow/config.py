@@ -2,7 +2,7 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from tested.datatypes import AdvancedStringTypes, AllTypes, BasicStringTypes
+from tested.datatypes import AdvancedStringTypes, AllTypes, BasicNumericTypes, BasicStringTypes
 from tested.dodona import AnnotateCode, Message
 from tested.features import Construct, TypeSupport
 from tested.languages.conventionalize import Conventionable, NamingConventions
@@ -43,6 +43,7 @@ class Nextflow(Language):
         return {
             Construct.ASSIGNMENTS,
             Construct.FUNCTION_CALLS,
+            Construct.HETEROGENEOUS_ARGUMENTS,
             Construct.NAMED_ARGUMENTS
         }
 
@@ -51,6 +52,7 @@ class Nextflow(Language):
             AdvancedStringTypes.CHAR: TypeSupport.REDUCED,
             AdvancedStringTypes.STRING: TypeSupport.SUPPORTED,
             BasicStringTypes.TEXT: TypeSupport.SUPPORTED,
+            BasicNumericTypes.INTEGER: TypeSupport.SUPPORTED,
         }
 
     def modify_solution(self, solution: Path):

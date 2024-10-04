@@ -4,7 +4,7 @@ import shlex
 from typing import Literal, cast
 from pathlib import Path
 
-from tested.datatypes import AdvancedStringTypes, BasicStringTypes
+from tested.datatypes import AdvancedStringTypes, BasicNumericTypes, BasicStringTypes
 from tested.languages.conventionalize import submission_file
 from tested.languages.preparation import (
     PreparedContext,
@@ -26,9 +26,10 @@ from tested.serialisation import (
 from tested.testsuite import MainInput
 
 def convert_value(value: Value) -> str:
-    assert isinstance(value, StringType), f"Invalid literal: {value!r}"
     if value.type in (AdvancedStringTypes.CHAR, BasicStringTypes.TEXT):
         return json.dumps(value.data)
+    elif value.type in BasicNumericTypes.INTEGER:
+        return str(value.data)
     elif value.type == BasicStringTypes.UNKNOWN:
         return convert_unknown_type(value)
     raise AssertionError(f"Invalid literal: {value!r}")
@@ -67,7 +68,9 @@ def convert_execution_unit(pu: PreparedExecutionUnit) -> str:
     for ctx in pu.contexts:
         for tc in ctx.testcases:
             if isinstance(tc.input, PreparedTestcaseStatement):
-                includes.append(tc.input.unwrapped_input_statement().name)
+                name = tc.input.unwrapped_input_statement().name
+                if name not in includes:
+                    includes.append(name)
     result = f"""include {{ {"; ".join(includes)} }} from './{pu.submission_name}'
 
 value_file = file("${{projectDir}}/{pu.value_file}")
