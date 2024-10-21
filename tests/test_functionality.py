@@ -14,14 +14,16 @@ import pytest
 from pytest_mock import MockerFixture
 
 from tested.configs import create_bundle
+from tested.features import Construct
 from tested.judge.execution import ExecutionResult
-from tested.languages import LANGUAGES
+from tested.languages import LANGUAGES, get_language
 from tested.languages.generation import get_readable_input
 from tested.testsuite import Context, MainInput, Suite, Tab, Testcase, TextData
 from tests.language_markers import (
     ALL_LANGUAGES,
     ALL_SPECIFIC_LANGUAGES,
     EXCEPTION_LANGUAGES,
+    all_languages_except,
 )
 from tests.manual_utils import assert_valid_output, configuration, execute_config
 
@@ -31,6 +33,8 @@ def test_global_variable(language: str, tmp_path: Path, pytestconfig: pytest.Con
     conf = configuration(
         pytestconfig, "global", language, tmp_path, "one.tson", "correct"
     )
+    if Construct.GLOBAL_VARIABLES not in get_language(None, conf.programming_language).supported_constructs():
+        pytest.skip("Language doesn't support global variables")
     result = execute_config(conf)
     updates = assert_valid_output(result, pytestconfig)
     assert updates.find_status_enum() == ["correct"]
@@ -43,6 +47,8 @@ def test_global_variable_yaml(
     conf = configuration(
         pytestconfig, "global", language, tmp_path, "plan.yaml", "correct"
     )
+    if Construct.GLOBAL_VARIABLES not in get_language(None, conf.programming_language).supported_constructs():
+        pytest.skip("Language doesn't support global variables")
     result = execute_config(conf)
     updates = assert_valid_output(result, pytestconfig)
     assert updates.find_status_enum() == ["correct"]
@@ -294,7 +300,7 @@ def test_batch_compilation_no_fallback(
     assert spy.call_count == 1
 
 
-@pytest.mark.parametrize("language", ALL_LANGUAGES)
+@pytest.mark.parametrize("language", all_languages_except("nextflow"))
 def test_batch_compilation_no_fallback_runtime(
     language: str, tmp_path: Path, pytestconfig: pytest.Config
 ):
@@ -311,9 +317,7 @@ def test_batch_compilation_no_fallback_runtime(
     assert all(s in ("runtime error", "wrong") for s in updates.find_status_enum())
 
 
-@pytest.mark.parametrize(
-    "lang", ["python", "java", "c", "javascript", "kotlin", "bash", "csharp"]
-)
+@pytest.mark.parametrize("lang", all_languages_except("haskell", "runhaskell", "nextflow"))
 def test_program_params(lang: str, tmp_path: Path, pytestconfig: pytest.Config):
     conf = configuration(pytestconfig, "sum", lang, tmp_path, "short.tson", "correct")
     result = execute_config(conf)
@@ -585,7 +589,6 @@ def test_ignored_return_and_got_some(
         "ignored_return_but_got_some.json",
         "correct",
     )
-
     result = execute_config(conf)
     updates = assert_valid_output(result, pytestconfig)
     assert updates.find_status_enum() == []  # Empty means correct
